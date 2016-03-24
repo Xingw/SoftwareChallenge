@@ -9,8 +9,19 @@ import java.util.List;
 public class Util {
     public static short[][] FormatData(String graphContent){
         String[] routes=graphContent.split("\\n");
-        String[] sizes=routes[routes.length-1].split(",");
-        int size = Integer.parseInt(sizes[1]);
+        int size = 0;
+        //找到最大的路径值
+        for (String route : routes) {
+            String[] info=route.split(",");
+            int start = Integer.parseInt(info[1]);
+            int end = Integer.parseInt(info[2]);
+            if(size < start){
+                size = start;
+            }
+            if(size<end){
+                size = end;
+            }
+        }
         short[][] data =new short[size+1][size+1];
         for (String route : routes) {
             String[] info=route.split(",");
