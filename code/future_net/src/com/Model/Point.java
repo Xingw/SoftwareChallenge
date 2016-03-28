@@ -6,16 +6,17 @@ import java.util.List;
  * Created by Xingw on 2016/3/24.
  */
 public class Point {
-    int LinkID;
-    List<Point> NextPoints;
-    Point previous;
+    private int pointID;
+    private int totalValue;
+    private List<Point> NextPoints;
+    private Point previous;
 
-    public int getLinkID() {
-        return LinkID;
+    public int getPointID() {
+        return pointID;
     }
 
-    public void setLinkID(int linkID) {
-        LinkID = linkID;
+    public void setPointID(int pointID) {
+        this.pointID = pointID;
     }
 
     public List<Point> getNextPoints() {
@@ -32,5 +33,13 @@ public class Point {
 
     public void setPrevious(Point previous) {
         this.previous = previous;
+    }
+
+    public int getTotalValue(){
+        return totalValue;
+    }
+
+    public void setTotalValue(int totalValue){
+        this.totalValue=totalValue;
     }
 }
