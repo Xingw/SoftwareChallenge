@@ -48,7 +48,7 @@ public class MinValueHeap {
 
     public void insert(Point point){
         minHeap.add(point);
-        int current=minHeap.size();
+        int current=minHeap.size()-1;
         while (minHeap.get(current).getTotalValue()<minHeap.get(parent(current)).getTotalValue()){
             swap(current,parent(current));
             current=parent(current);
@@ -57,10 +57,10 @@ public class MinValueHeap {
 
     //退出最小值
     public Point popMin(){
-        swap(1,minHeap.size());
+        swap(1,minHeap.size()-1);
         Point tmp=minHeap.get(minHeap.size()-1);
         minHeap.remove(minHeap.size()-1);
-        if (minHeap.size()!=1)
+        if (minHeap.size()>2)
             pushDown(1);
         return tmp;
     }
@@ -69,13 +69,21 @@ public class MinValueHeap {
         int smallestChild;
         while (!isLeaf(pos)){
             smallestChild=leftChild(pos);
-            if ((smallestChild<minHeap.size())&&(minHeap.get(smallestChild).getTotalValue()>minHeap.get(smallestChild+1).getTotalValue()))
-                smallestChild=smallestChild+1;
+            if(smallestChild >= minHeap.size())return;
+            if(smallestChild+1 < minHeap.size()) {
+                if ((smallestChild < minHeap.size()) && (minHeap.get(smallestChild).getTotalValue() > minHeap.get(smallestChild + 1).getTotalValue()))
+                    smallestChild = smallestChild + 1;
+            }
             if (minHeap.get(pos).getTotalValue()<=minHeap.get(smallestChild).getTotalValue())
-                return;;
+                return;
             swap(pos,smallestChild);
             pos=smallestChild;
         }
     }
 
+    public boolean isHeapEmpty(){
+        if(minHeap.size() <2)
+            return true;
+        return false;
+    }
 }

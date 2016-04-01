@@ -11,6 +11,17 @@ public class Point {
     private List<Point> NextPoints;
     private Point previous;
 
+    public Point(int pointID, int totalValue, List<Point> nextPoints, Point previous) {
+        this.pointID = pointID;
+        this.totalValue = totalValue;
+        NextPoints = nextPoints;
+        this.previous = previous;
+    }
+
+    public Point() {
+        pointID = -1;
+    }
+
     public int getPointID() {
         return pointID;
     }
