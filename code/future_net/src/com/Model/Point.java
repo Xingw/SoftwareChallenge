@@ -8,14 +8,25 @@ import java.util.List;
 public class Point {
     private int pointID;
     private int totalValue;
+    private int totalBestValue;
     private List<Point> NextPoints;
     private Point previous;
+    private int passednum;
 
-    public Point(int pointID, int totalValue, List<Point> nextPoints, Point previous) {
+    public Point(int pointID, int totalValue,int totalBestValue, List<Point> nextPoints, Point previous) {
         this.pointID = pointID;
         this.totalValue = totalValue;
         NextPoints = nextPoints;
         this.previous = previous;
+        passednum = 0;
+    }
+
+    public int getTotalBestValue() {
+        return totalBestValue;
+    }
+
+    public void setTotalBestValue(int totalBestValue) {
+        this.totalBestValue = totalBestValue;
     }
 
     public Point() {

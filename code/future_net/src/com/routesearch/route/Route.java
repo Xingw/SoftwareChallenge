@@ -9,16 +9,23 @@ package com.routesearch.route;
 
 import com.Model.MinValueHeap;
 import com.Model.Point;
+import com.Model.Topo;
+import com.filetool.util.FileUtil;
+import com.filetool.util.LogUtil;
+import com.filetool.util.Util;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import static com.filetool.util.Util.FormatData;
 
 public final class Route {
     //路径信息
-    private static short[][] data;
-    private static short[][] routenum;
+//    private static short[][] data;
+//    private static short[][] routenum;
+    private static Topo[][] topo;
+
     //起点
     private static short start;
     //终点
@@ -38,13 +45,27 @@ public final class Route {
      * @since 2016-3-4
      */
     public static String searchRoute(String graphContent, String condition) {
-        short[][][]  result= FormatData(graphContent);
-        data = result[0];
-        routenum = result[1];
+        topo= FormatData(graphContent);
         FormatCondition(condition);
+        FormatGrade();
+        LogUtil.printLog("Format");
         minValueHeap = MinValueHeap.getInstance();
         findMinValueRoute();
         return FormatResult();
+    }
+
+    private static void FormatGrade() {
+        for (short pas : pass) {
+            for (int i = 0; i <topo.length ; i++) {
+                topo[i][pas].setGrade(0.2);
+                for (int j = 0; j < topo.length; j++) {
+                    topo[j][i].setGrade(0.3);
+                    for (int k = 0; k < topo.length; k++) {
+                        topo[k][j].setGrade(0.4);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -57,37 +78,43 @@ public final class Route {
         Point current = currentminpoint;
         StringBuffer result = new StringBuffer();
         while (pre !=null){
-            result.insert(0,routenum[pre.getPointID()][current.getPointID()]);
+            result.insert(0,topo[pre.getPointID()][current.getPointID()].getLinkId());
             current = pre;
             pre = current.getPrevious();
             if(pre !=null)
                 result.insert(0,"|");
         }
+        System.out.println(result.toString());
         return result.toString();
     }
 
     private static void findMinValueRoute() {
-        Point startpoint = new Point(start, 0, null, null);
+        Point startpoint = new Point(start, 0 , 0, null, null);
         startpoint.setNextPoints(findnextPointList(startpoint));
         while (!minValueHeap.isHeapEmpty()) {
             Point point=minValueHeap.popMin();
             point.setNextPoints(findnextPointList(point));
+            //int second = LogUtil.getTimeUsed().get(Calendar.SECOND);
+            //if (second >= 9)break;
 //            minValueHeap.insert();
         }
     }
 
     private static List<Point> findnextPointList(Point parent) {
         List<Point> points = new ArrayList<>();
-        for (int i = 0; i < data[0].length; i++) {
-            int value = data[parent.getPointID()][i];
+        for (int i = 0; i < topo[0].length; i++) {
+            int value = topo[parent.getPointID()][i].getCost();
+            int bestvalue = topo[parent.getPointID()][i].getBestCost();
             if (value != 0) {
-                Point point = new Point(i, parent.getTotalValue() + value, null, parent);
+                Point point = new Point(i, parent.getTotalValue() + value,parent
+                        .getTotalBestValue() + bestvalue , null, parent);
                 //判断这个点是不是结尾
                 if (point.getPointID() == end) {
                     //有没有通过所有特殊点
                     if (hasallspecialpoint(point)) {
                         //如果通过了所有特殊点 它是不是最短路径 如果不是则丢弃
                         if (currentminpoint == null) {
+                            LogUtil.printLog("First route");
                             currentminpoint = point;
                         } else if (point.getTotalValue() < currentminpoint.getTotalValue()) {
                             currentminpoint = point;
@@ -99,7 +126,7 @@ public final class Route {
                     }
                     //判断这个点如果超出了最短路径则丢弃
                     if (currentminpoint != null) {
-                        if (point.getTotalValue() < currentminpoint.getTotalValue()) {
+                        if (point.getTotalBestValue() < currentminpoint.getTotalBestValue() * 0.9) {
                             minValueHeap.insert(point);
                             points.add(point);
                         }
