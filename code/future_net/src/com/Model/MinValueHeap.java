@@ -4,15 +4,16 @@ import java.util.ArrayList;
  * Created by yangxu on 16/3/28.
  */
 public class MinValueHeap {
-    private  ArrayList<Point>    minHeap;
+    private  ArrayList<Searcher>    minHeap;
 
 
     private MinValueHeap(){
-        this.minHeap=new ArrayList<Point>();
+        this.minHeap=new ArrayList<Searcher>();
         //添加一个最小站位
-        Point zeroPoint=new Point();
-        zeroPoint.setTotalValue(Integer.MIN_VALUE);
-        this.minHeap.add(zeroPoint);
+        Searcher zeroSearcher =new Searcher();
+        zeroSearcher.setTotalValue(Integer.MIN_VALUE);
+        zeroSearcher.setTotalBestValue(Integer.MIN_VALUE);
+        this.minHeap.add(zeroSearcher);
     }
 
     private static MinValueHeap single=null;
@@ -41,13 +42,13 @@ public class MinValueHeap {
     }
 
     private void swap(int pos1,int pos2){
-        Point tmp=minHeap.get(pos1);
+        Searcher tmp=minHeap.get(pos1);
         minHeap.set(pos1,minHeap.get(pos2));
         minHeap.set(pos2,tmp);
     }
 
-    public void insert(Point point){
-        minHeap.add(point);
+    public void insert(Searcher searcher){
+        minHeap.add(searcher);
         int current=minHeap.size()-1;
         while (minHeap.get(current).getTotalBestValue()<minHeap.get(parent(current)).getTotalBestValue()){
             swap(current,parent(current));
@@ -56,9 +57,9 @@ public class MinValueHeap {
     }
 
     //退出最小值
-    public Point popMin(){
+    public Searcher popMin(){
         swap(1,minHeap.size()-1);
-        Point tmp=minHeap.get(minHeap.size()-1);
+        Searcher tmp=minHeap.get(minHeap.size()-1);
         minHeap.remove(minHeap.size()-1);
         if (minHeap.size()>2)
             pushDown(1);

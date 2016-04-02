@@ -1,36 +1,23 @@
 package com.Model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by Xingw on 2016/3/24.
+ * Created by Xingw on 2016/4/2.
  */
 public class Point {
+    //点ID
     private int pointID;
-    private int totalValue;
-    private int totalBestValue;
-    private List<Point> NextPoints;
-    private Point previous;
-    private int passednum;
+    //优先级
+    private double grade;
+    //前面的点
+    private List<Point> previous;
 
-    public Point(int pointID, int totalValue,int totalBestValue, List<Point> nextPoints, Point previous) {
+    public Point(int pointID) {
         this.pointID = pointID;
-        this.totalValue = totalValue;
-        NextPoints = nextPoints;
-        this.previous = previous;
-        passednum = 0;
-    }
-
-    public int getTotalBestValue() {
-        return totalBestValue;
-    }
-
-    public void setTotalBestValue(int totalBestValue) {
-        this.totalBestValue = totalBestValue;
-    }
-
-    public Point() {
-        pointID = -1;
+        this.previous = new ArrayList<>();
+        this.grade = 0;
     }
 
     public int getPointID() {
@@ -41,27 +28,21 @@ public class Point {
         this.pointID = pointID;
     }
 
-    public List<Point> getNextPoints() {
-        return NextPoints;
-    }
-
-    public void setNextPoints(List<Point> nextPoints) {
-        NextPoints = nextPoints;
-    }
-
-    public Point getPrevious() {
+    public List<Point> getPrevious() {
         return previous;
     }
 
-    public void setPrevious(Point previous) {
+    public void setPrevious(List<Point> previous) {
         this.previous = previous;
     }
 
-    public int getTotalValue(){
-        return totalValue;
+    public double getGrade() {
+        return grade;
     }
 
-    public void setTotalValue(int totalValue){
-        this.totalValue=totalValue;
+    public void setGrade(double grade) {
+        if(this.grade < grade) {
+            this.grade = grade;
+        }
     }
 }

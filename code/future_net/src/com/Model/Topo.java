@@ -1,5 +1,8 @@
 package com.Model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by Xingw on 2016/4/1.
  */
@@ -8,16 +11,23 @@ public class Topo {
     short LinkId;
     //消费
     short cost;
-    //等级
-    double grade;
-
-    public Topo(short linkId, short cost, int grade) {
+    //前一个点
+    List<Topo> previous;
+    public Topo(short linkId, short cost) {
         LinkId = linkId;
         this.cost = cost;
-        this.grade = grade;
+        previous = new ArrayList<>();
     }
 
     public Topo() {
+    }
+
+    public List<Topo> getPrevious() {
+        return previous;
+    }
+
+    public void setPrevious(List<Topo> previous) {
+        this.previous = previous;
     }
 
     public short getLinkId() {
@@ -32,18 +42,8 @@ public class Topo {
         return cost;
     }
 
-    public short getBestCost() {
-        return (short) (cost * grade);
-    }
     public void setCost(short cost) {
         this.cost = cost;
     }
 
-    public double getGrade() {
-        return grade;
-    }
-
-    public void setGrade(double grade) {
-        this.grade = grade;
-    }
 }

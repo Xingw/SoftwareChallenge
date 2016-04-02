@@ -9,23 +9,22 @@ package com.routesearch.route;
 
 import com.Model.MinValueHeap;
 import com.Model.Point;
+import com.Model.Searcher;
 import com.Model.Topo;
-import com.filetool.util.FileUtil;
 import com.filetool.util.LogUtil;
-import com.filetool.util.Util;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
-import static com.filetool.util.Util.FormatData;
 
 public final class Route {
     //路径信息
 //    private static short[][] data;
 //    private static short[][] routenum;
+    //线路信息
     private static Topo[][] topo;
-
+    //所有点
+    private static Point[] points;
     //起点
     private static short start;
     //终点
@@ -33,7 +32,7 @@ public final class Route {
     //特殊点
     private static short[] pass;
 
-    private static Point currentminpoint = null;
+    private static Searcher currentminpoint = null;
 
     private static MinValueHeap minValueHeap;
 
@@ -45,7 +44,7 @@ public final class Route {
      * @since 2016-3-4
      */
     public static String searchRoute(String graphContent, String condition) {
-        topo= FormatData(graphContent);
+        FormatData(graphContent);
         FormatCondition(condition);
         FormatGrade();
         LogUtil.printLog("Format");
@@ -56,124 +55,169 @@ public final class Route {
 
     private static void FormatGrade() {
         for (short pas : pass) {
-            for (int i = 0; i <topo.length ; i++) {
-                topo[i][pas].setGrade(0.2);
-                for (int j = 0; j < topo.length; j++) {
-                    topo[j][i].setGrade(0.3);
-                    for (int k = 0; k < topo.length; k++) {
-                        topo[k][j].setGrade(0.4);
-                    }
+            points[pas].setGrade(10);
+            for (Point point : points[pas].getPrevious()) {
+                point.setGrade(5);
+                for (Point point1 : point.getPrevious()) {
+                    point1.setGrade(2);
+//                    for (Point point2 : point1.getPrevious()) {
+//                        point2.setGrade(0.6);
+//                        for (Point point3 : point2.getPrevious()) {
+//                            point3.setGrade(0.65);
+//                            for (Point point4 : point3.getPrevious()) {
+//                                point4.setGrade(0.7);
+//                                for (Point point5 : point4.getPrevious()) {
+//                                    point5.setGrade(0.75);
+//                                    for (Point point6 : point5.getPrevious()) {
+//                                        point6.setGrade(0.8);
+//                                        for (Point point7 : point6.getPrevious()) {
+//                                            point7.setGrade(0.8);
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
                 }
             }
         }
+//        points[end].setGrade(0);
+//        for (Point point : points[end].getPrevious()) {
+//            point.setGrade(0.2);
+//            for (Point point1 : point.getPrevious()) {
+//                point1.setGrade(0.3);
+//                for (Point point2 : point1.getPrevious()) {
+//                    point2.setGrade(0.6);
+//                    for (Point point3 : point2.getPrevious()) {
+//                        point3.setGrade(0.65);
+//                        for (Point point4 : point3.getPrevious()) {
+//                            point4.setGrade(0.7);
+//                            for (Point point5 : point4.getPrevious()) {
+//                                point5.setGrade(0.75);
+//                                for (Point point6 : point5.getPrevious()) {
+//                                    point6.setGrade(0.8);
+//                                    for (Point point7 : point6.getPrevious()) {
+//                                        point7.setGrade(0.8);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     /**
      * 格式化结果输出
+     *
      * @return
      */
     private static String FormatResult() {
-        if(currentminpoint == null) return "NA";
-        Point pre = currentminpoint.getPrevious();
-        Point current = currentminpoint;
+        if (currentminpoint == null) {
+            System.out.println("NA");
+            return "NA";
+        }
+        Searcher pre = currentminpoint.getPrevious();
+        Searcher current = currentminpoint;
         StringBuffer result = new StringBuffer();
-        while (pre !=null){
-            result.insert(0,topo[pre.getPointID()][current.getPointID()].getLinkId());
+        while (pre != null) {
+            result.insert(0, topo[pre.getPointID()][current.getPointID()].getLinkId());
             current = pre;
             pre = current.getPrevious();
-            if(pre !=null)
-                result.insert(0,"|");
+            if (pre != null)
+                result.insert(0, "|");
         }
         System.out.println(result.toString());
         return result.toString();
     }
 
     private static void findMinValueRoute() {
-        Point startpoint = new Point(start, 0 , 0, null, null);
-        startpoint.setNextPoints(findnextPointList(startpoint));
+        Searcher startpoint = new Searcher(start, 0, 0, null);
+        findnextPointList(startpoint);
         while (!minValueHeap.isHeapEmpty()) {
-            Point point=minValueHeap.popMin();
-            point.setNextPoints(findnextPointList(point));
+            Searcher searcher = minValueHeap.popMin();
+            findnextPointList(searcher);
             //int second = LogUtil.getTimeUsed().get(Calendar.SECOND);
             //if (second >= 9)break;
 //            minValueHeap.insert();
         }
     }
 
-    private static List<Point> findnextPointList(Point parent) {
-        List<Point> points = new ArrayList<>();
+    private static void findnextPointList(Searcher parent) {
         for (int i = 0; i < topo[0].length; i++) {
             int value = topo[parent.getPointID()][i].getCost();
-            int bestvalue = topo[parent.getPointID()][i].getBestCost();
             if (value != 0) {
-                Point point = new Point(i, parent.getTotalValue() + value,parent
-                        .getTotalBestValue() + bestvalue , null, parent);
+                int bestvalue = (int) (value - points[i].getGrade()*0.5);
+                Searcher searcher = new Searcher(i, parent.getTotalValue() + value, parent
+                        .getTotalBestValue() + bestvalue, parent);
                 //判断这个点是不是结尾
-                if (point.getPointID() == end) {
+                if (searcher.getPointID() == end) {
                     //有没有通过所有特殊点
-                    if (hasallspecialpoint(point)) {
+                    if (hasallspecialpoint(searcher)) {
                         //如果通过了所有特殊点 它是不是最短路径 如果不是则丢弃
                         if (currentminpoint == null) {
                             LogUtil.printLog("First route");
-                            currentminpoint = point;
-                        } else if (point.getTotalValue() < currentminpoint.getTotalValue()) {
-                            currentminpoint = point;
+                            currentminpoint = searcher;
+                        } else if (searcher.getTotalValue() < currentminpoint.getTotalValue()) {
+                            currentminpoint = searcher;
                         }
                     }
                 } else {
-                    if(haspassedpoint(point)){
+                    if (haspassedpoint(searcher)) {
                         continue;
                     }
                     //判断这个点如果超出了最短路径则丢弃
                     if (currentminpoint != null) {
-                        if (point.getTotalBestValue() < currentminpoint.getTotalBestValue() * 0.9) {
-                            minValueHeap.insert(point);
-                            points.add(point);
+                        if (searcher.getTotalBestValue() < currentminpoint.getTotalBestValue() *
+                                0.9) {
+                            minValueHeap.insert(searcher);
+//                            searchers.add(searcher);
                         }
                     } else {
-                        minValueHeap.insert(point);
-                        points.add(point);
+                        minValueHeap.insert(searcher);
+//                        searchers.add(searcher);
                     }
                 }
             }
         }
-        return points;
     }
 
     /**
      * 判断是否重复经过某点
-     * @param point
+     *
+     * @param searcher
      * @return
      */
-    private static boolean haspassedpoint(Point point) {
-        int pointId = point.getPointID();
-        point = point.getPrevious();
-        while (point !=null){
-            if(point.getPointID() == pointId)
+    private static boolean haspassedpoint(Searcher searcher) {
+        int pointId = searcher.getPointID();
+        searcher = searcher.getPrevious();
+        while (searcher != null) {
+            if (searcher.getPointID() == pointId)
                 return true;
-            point = point.getPrevious();
+            searcher = searcher.getPrevious();
         }
         return false;
     }
 
     /**
      * 是否通过所有特殊点
-     * @param point
+     *
+     * @param searcher
      * @return
      */
-    private static boolean hasallspecialpoint(Point point) {
+    private static boolean hasallspecialpoint(Searcher searcher) {
         int passnumber = pass.length;
-        while (!(point==null || passnumber==0)){
+        while (!(searcher == null || passnumber == 0)) {
             for (int i = 0; i < pass.length; i++) {
-                if(point.getPointID() == pass[i])
-                {
+                if (searcher.getPointID() == pass[i]) {
                     passnumber--;
                     break;
                 }
             }
-            point = point.getPrevious();
+            searcher = searcher.getPrevious();
         }
-        if (passnumber == 0)return true;
+        if (passnumber == 0) return true;
         return false;
     }
 
@@ -195,5 +239,41 @@ public final class Route {
         }
     }
 
-
+    /**
+     * 生成路线信息
+     *
+     * @param graphContent
+     */
+    public static void FormatData(String graphContent) {
+        String[] routes = graphContent.split("\\n");
+        int size = 0;
+        //找到最大的路径值
+        for (String route : routes) {
+            String[] info = route.split(",");
+            int start = Integer.parseInt(info[1]);
+            int end = Integer.parseInt(info[2]);
+            if (size < start) {
+                size = start;
+            }
+            if (size < end) {
+                size = end;
+            }
+        }
+        points = new Point[size + 1];
+        for (int i = 0; i < points.length; i++) {
+            points[i] = new Point(i);
+        }
+        topo = new Topo[size + 1][size + 1];
+        for (int i = 0; i < topo.length; i++) {
+            for (int j = 0; j < topo.length; j++) {
+                topo[i][j] = new Topo();
+            }
+        }
+        for (String route : routes) {
+            String[] info = route.split(",");
+            Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
+            topo[Integer.parseInt(info[1])][Integer.parseInt(info[2])] = data;
+            points[Integer.parseInt(info[2])].getPrevious().add(points[Integer.parseInt(info[1])]);
+        }
+    }
 }
