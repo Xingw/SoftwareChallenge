@@ -15,6 +15,8 @@ import com.filetool.util.LogUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public final class Route {
@@ -31,6 +33,8 @@ public final class Route {
     private static short end;
     //特殊点
     private static short[] pass;
+    //计时
+    public static boolean timeout = false;
 
     private static Searcher currentminpoint = null;
 
@@ -44,44 +48,55 @@ public final class Route {
      * @since 2016-3-4
      */
     public static String searchRoute(String graphContent, String condition) {
+        //计时器
+        SetTimer();
+        //格式化路线
         FormatData(graphContent);
+        //格式化条件
         FormatCondition(condition);
+        //格式化优先级
         FormatGrade();
         LogUtil.printLog("Format");
+        //建立最小堆
         minValueHeap = MinValueHeap.getInstance();
         findMinValueRoute();
         return FormatResult();
     }
 
+    private static void SetTimer() {
+        Timer timer = new Timer();
+        timer.schedule(new Task(), 9 * 1000 + 800);
+    }
+
     private static void FormatGrade() {
         for (short pas : pass) {
-            points[pas].setGrade(10);
+            points[pas].setGrade(40);
             for (Point point : points[pas].getPrevious()) {
-                point.setGrade(5);
+                point.setGrade(6);
                 for (Point point1 : point.getPrevious()) {
-                    point1.setGrade(2);
-//                    for (Point point2 : point1.getPrevious()) {
-//                        point2.setGrade(0.6);
-//                        for (Point point3 : point2.getPrevious()) {
-//                            point3.setGrade(0.65);
-//                            for (Point point4 : point3.getPrevious()) {
-//                                point4.setGrade(0.7);
-//                                for (Point point5 : point4.getPrevious()) {
-//                                    point5.setGrade(0.75);
-//                                    for (Point point6 : point5.getPrevious()) {
-//                                        point6.setGrade(0.8);
-//                                        for (Point point7 : point6.getPrevious()) {
-//                                            point7.setGrade(0.8);
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
+                    point1.setGrade(5);
+                    for (Point point2 : point1.getPrevious()) {
+                        point2.setGrade(4);
+                        for (Point point3 : point2.getPrevious()) {
+                            point3.setGrade(3);
+                            for (Point point4 : point3.getPrevious()) {
+                                point4.setGrade(2);
+                                for (Point point5 : point4.getPrevious()) {
+                                    point5.setGrade(1);
+                                    for (Point point6 : point5.getPrevious()) {
+                                        point6.setGrade(0.9);
+                                        for (Point point7 : point6.getPrevious()) {
+                                            point7.setGrade(0.8);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-//        points[end].setGrade(0);
+        points[end].setGrade(100);
 //        for (Point point : points[end].getPrevious()) {
 //            point.setGrade(0.2);
 //            for (Point point1 : point.getPrevious()) {
@@ -128,7 +143,7 @@ public final class Route {
             if (pre != null)
                 result.insert(0, "|");
         }
-        System.out.println(result.toString());
+        System.out.println(result.toString() + "\n cost:" + currentminpoint.getTotalValue());
         return result.toString();
     }
 
@@ -138,6 +153,9 @@ public final class Route {
         while (!minValueHeap.isHeapEmpty()) {
             Searcher searcher = minValueHeap.popMin();
             findnextPointList(searcher);
+            if (timeout) {
+                break;
+            }
             //int second = LogUtil.getTimeUsed().get(Calendar.SECOND);
             //if (second >= 9)break;
 //            minValueHeap.insert();
@@ -148,7 +166,7 @@ public final class Route {
         for (int i = 0; i < topo[0].length; i++) {
             int value = topo[parent.getPointID()][i].getCost();
             if (value != 0) {
-                int bestvalue = (int) (value - points[i].getGrade()*0.5);
+                int bestvalue = (int) (value - points[i].getGrade() * 1);
                 Searcher searcher = new Searcher(i, parent.getTotalValue() + value, parent
                         .getTotalBestValue() + bestvalue, parent);
                 //判断这个点是不是结尾
@@ -157,10 +175,12 @@ public final class Route {
                     if (hasallspecialpoint(searcher)) {
                         //如果通过了所有特殊点 它是不是最短路径 如果不是则丢弃
                         if (currentminpoint == null) {
-                            LogUtil.printLog("First route");
                             currentminpoint = searcher;
+                            LogUtil.printLog("First route");
+                            FormatResult();
                         } else if (searcher.getTotalValue() < currentminpoint.getTotalValue()) {
                             currentminpoint = searcher;
+                            FormatResult();
                         }
                     }
                 } else {
@@ -169,8 +189,7 @@ public final class Route {
                     }
                     //判断这个点如果超出了最短路径则丢弃
                     if (currentminpoint != null) {
-                        if (searcher.getTotalBestValue() < currentminpoint.getTotalBestValue() *
-                                0.9) {
+                        if (searcher.getTotalValue() < currentminpoint.getTotalValue()) {
                             minValueHeap.insert(searcher);
 //                            searchers.add(searcher);
                         }
@@ -274,6 +293,15 @@ public final class Route {
             Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
             topo[Integer.parseInt(info[1])][Integer.parseInt(info[2])] = data;
             points[Integer.parseInt(info[2])].getPrevious().add(points[Integer.parseInt(info[1])]);
+        }
+    }
+
+    private static class Task extends TimerTask {
+
+        @Override
+        public void run() {
+            System.out.println("time out !!!!!!!!");
+            timeout = true;
         }
     }
 }

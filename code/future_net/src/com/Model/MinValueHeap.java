@@ -50,7 +50,7 @@ public class MinValueHeap {
     public void insert(Searcher searcher){
         minHeap.add(searcher);
         int current=minHeap.size()-1;
-        while (minHeap.get(current).getTotalBestValue()<minHeap.get(parent(current)).getTotalBestValue()){
+        while (minHeap.get(current).getSortValue()<minHeap.get(parent(current)).getSortValue()){
             swap(current,parent(current));
             current=parent(current);
         }
@@ -72,10 +72,10 @@ public class MinValueHeap {
             smallestChild=leftChild(pos);
             if(smallestChild >= minHeap.size())return;
             if(smallestChild+1 < minHeap.size()) {
-                if ((smallestChild < minHeap.size()) && (minHeap.get(smallestChild).getTotalBestValue() > minHeap.get(smallestChild + 1).getTotalBestValue()))
+                if ((smallestChild < minHeap.size()) && (minHeap.get(smallestChild).getSortValue() > minHeap.get(smallestChild + 1).getSortValue()))
                     smallestChild = smallestChild + 1;
             }
-            if (minHeap.get(pos).getTotalBestValue()<=minHeap.get(smallestChild).getTotalBestValue())
+            if (minHeap.get(pos).getSortValue()<=minHeap.get(smallestChild).getSortValue())
                 return;
             swap(pos,smallestChild);
             pos=smallestChild;

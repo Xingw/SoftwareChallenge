@@ -9,7 +9,8 @@ public class Searcher {
     private int pointID;
     private int totalValue;
     private int totalBestValue;
-//    private List<Searcher> nextSearchers;
+    //    private List<Searcher> nextSearchers;
+    private int passednnum;
     private Searcher previous;
 
     public Searcher(int pointID, int totalValue, int totalBestValue, Searcher previous) {
@@ -17,6 +18,19 @@ public class Searcher {
         this.totalValue = totalValue;
         this.totalBestValue = totalBestValue;
         this.previous = previous;
+        if (previous != null) {
+            this.passednnum = previous.getPassednnum() + 1;
+        } else {
+            passednnum = 0;
+        }
+    }
+
+    public int getPassednnum() {
+        return passednnum;
+    }
+
+    public void setPassednnum(int passednnum) {
+        this.passednnum = passednnum;
     }
 
     public int getTotalBestValue() {
@@ -29,6 +43,7 @@ public class Searcher {
 
     public Searcher() {
         pointID = -1;
+        passednnum = 0;
     }
 
     public int getPointID() {
@@ -47,11 +62,15 @@ public class Searcher {
         this.previous = previous;
     }
 
-    public int getTotalValue(){
+    public int getTotalValue() {
         return totalValue;
     }
 
-    public void setTotalValue(int totalValue){
-        this.totalValue=totalValue;
+    public void setTotalValue(int totalValue) {
+        this.totalValue = totalValue;
+    }
+
+    public int getSortValue() {
+        return (int)(totalBestValue - passednnum * 0.2);
     }
 }
