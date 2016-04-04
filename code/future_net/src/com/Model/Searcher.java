@@ -71,6 +71,6 @@ public class Searcher {
     }
 
     public int getSortValue() {
-        return (int)(totalBestValue - passednnum * 0.2);
+        return (int)(totalBestValue - passednnum * 1);
     }
 }

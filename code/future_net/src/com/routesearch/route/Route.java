@@ -36,9 +36,13 @@ public final class Route {
     //计时
     public static boolean timeout = false;
 
+    public static int maxValue = 2000;
+
     private static Searcher currentminpoint = null;
 
     private static MinValueHeap minValueHeap;
+    //方向 true为正 false为反
+    private static boolean direction = false;
 
     /**
      * 你需要完成功能的入口
@@ -51,16 +55,16 @@ public final class Route {
         //计时器
         SetTimer();
         //格式化路线
-        FormatData(graphContent);
+        FormatData(graphContent, direction);
         //格式化条件
-        FormatCondition(condition);
+        FormatCondition(condition, direction);
         //格式化优先级
         FormatGrade();
         LogUtil.printLog("Format");
         //建立最小堆
         minValueHeap = MinValueHeap.getInstance();
         findMinValueRoute();
-        return FormatResult();
+        return FormatResult(direction);
     }
 
     private static void SetTimer() {
@@ -69,66 +73,37 @@ public final class Route {
     }
 
     private static void FormatGrade() {
+//        if (points.length < 500) {
+//            maxValue = 290;
+//        } else {
+//            maxValue = 600;
+//        }
         for (short pas : pass) {
-            points[pas].setGrade(40);
+            points[pas].setGrade(100);
             for (Point point : points[pas].getPrevious()) {
-                point.setGrade(6);
-                for (Point point1 : point.getPrevious()) {
-                    point1.setGrade(5);
-                    for (Point point2 : point1.getPrevious()) {
-                        point2.setGrade(4);
-                        for (Point point3 : point2.getPrevious()) {
-                            point3.setGrade(3);
-                            for (Point point4 : point3.getPrevious()) {
-                                point4.setGrade(2);
-                                for (Point point5 : point4.getPrevious()) {
-                                    point5.setGrade(1);
-                                    for (Point point6 : point5.getPrevious()) {
-                                        point6.setGrade(0.9);
-                                        for (Point point7 : point6.getPrevious()) {
-                                            point7.setGrade(0.8);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                RecursionGrade(point, 10, Math.pow(20, 1d / (10)));
             }
         }
         points[end].setGrade(100);
-//        for (Point point : points[end].getPrevious()) {
-//            point.setGrade(0.2);
-//            for (Point point1 : point.getPrevious()) {
-//                point1.setGrade(0.3);
-//                for (Point point2 : point1.getPrevious()) {
-//                    point2.setGrade(0.6);
-//                    for (Point point3 : point2.getPrevious()) {
-//                        point3.setGrade(0.65);
-//                        for (Point point4 : point3.getPrevious()) {
-//                            point4.setGrade(0.7);
-//                            for (Point point5 : point4.getPrevious()) {
-//                                point5.setGrade(0.75);
-//                                for (Point point6 : point5.getPrevious()) {
-//                                    point6.setGrade(0.8);
-//                                    for (Point point7 : point6.getPrevious()) {
-//                                        point7.setGrade(0.8);
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        RecursionGrade(points[end], 10, Math.pow(20, 1d / (10)));
     }
+
+    private static void RecursionGrade(Point point, int count, double num) {
+        if (count == 0) return;
+        point.setGrade(Math.pow(num, count));
+        count--;
+        for (Point point1 : point.getPrevious()) {
+            RecursionGrade(point1, count, num);
+        }
+    }
+
 
     /**
      * 格式化结果输出
      *
      * @return
      */
-    private static String FormatResult() {
+    private static String FormatResult(boolean direction) {
         if (currentminpoint == null) {
             System.out.println("NA");
             return "NA";
@@ -137,11 +112,19 @@ public final class Route {
         Searcher current = currentminpoint;
         StringBuffer result = new StringBuffer();
         while (pre != null) {
-            result.insert(0, topo[pre.getPointID()][current.getPointID()].getLinkId());
-            current = pre;
-            pre = current.getPrevious();
-            if (pre != null)
-                result.insert(0, "|");
+            if (direction) {
+                result.insert(0, topo[pre.getPointID()][current.getPointID()].getLinkId());
+                current = pre;
+                pre = current.getPrevious();
+                if (pre != null)
+                    result.insert(0, "|");
+            } else {
+                result.append(topo[pre.getPointID()][current.getPointID()].getLinkId());
+                current = pre;
+                pre = current.getPrevious();
+                if (pre != null)
+                    result.append("|");
+            }
         }
         System.out.println(result.toString() + "\n cost:" + currentminpoint.getTotalValue());
         return result.toString();
@@ -177,14 +160,17 @@ public final class Route {
                         if (currentminpoint == null) {
                             currentminpoint = searcher;
                             LogUtil.printLog("First route");
-                            FormatResult();
+                            FormatResult(direction);
                         } else if (searcher.getTotalValue() < currentminpoint.getTotalValue()) {
                             currentminpoint = searcher;
-                            FormatResult();
+                            FormatResult(direction);
                         }
                     }
                 } else {
                     if (haspassedpoint(searcher)) {
+                        continue;
+                    }
+                    if (searcher.getTotalValue() > maxValue) {
                         continue;
                     }
                     //判断这个点如果超出了最短路径则丢弃
@@ -245,10 +231,15 @@ public final class Route {
      *
      * @param condition 条件字符串
      */
-    public static void FormatCondition(String condition) {
+    public static void FormatCondition(String condition, boolean direction) {
         String[] Info = condition.split(",");
-        start = Short.parseShort(Info[0]);
-        end = Short.parseShort(Info[1]);
+        if (direction) {
+            start = Short.parseShort(Info[0]);
+            end = Short.parseShort(Info[1]);
+        } else {
+            start = Short.parseShort(Info[1]);
+            end = Short.parseShort(Info[0]);
+        }
         //截取掉换行符
         Info[2] = Info[2].substring(0, Info[2].length() - 1);
         String[] passes = Info[2].split("\\|");
@@ -263,7 +254,7 @@ public final class Route {
      *
      * @param graphContent
      */
-    public static void FormatData(String graphContent) {
+    public static void FormatData(String graphContent, boolean direction) {
         String[] routes = graphContent.split("\\n");
         int size = 0;
         //找到最大的路径值
@@ -290,9 +281,16 @@ public final class Route {
         }
         for (String route : routes) {
             String[] info = route.split(",");
-            Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
-            topo[Integer.parseInt(info[1])][Integer.parseInt(info[2])] = data;
-            points[Integer.parseInt(info[2])].getPrevious().add(points[Integer.parseInt(info[1])]);
+            if (direction) {
+                Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
+                topo[Integer.parseInt(info[1])][Integer.parseInt(info[2])] = data;
+                points[Integer.parseInt(info[2])].getPrevious().add(points[Integer.parseInt(info[1])]);
+            } else {
+                Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
+                topo[Integer.parseInt(info[2])][Integer.parseInt(info[1])] = data;
+                points[Integer.parseInt(info[1])].getPrevious().add(points[Integer.parseInt
+                        (info[2])]);
+            }
         }
     }
 
