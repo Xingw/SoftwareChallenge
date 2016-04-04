@@ -46,4 +46,12 @@ public class LogUtil
         System.err.println(MessageFormat.format(logtemp, new Object[]
         {log, dateString, calendar.get(Calendar.SECOND), calendar.get(Calendar.MILLISECOND)}));
     }
+
+    public static Calendar getTimeUsed(){
+        Time time = new Time();
+        long delay = time.getTimeDelay();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(delay);
+        return calendar;
+    }
 }
