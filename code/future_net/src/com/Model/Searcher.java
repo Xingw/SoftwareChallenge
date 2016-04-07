@@ -7,13 +7,15 @@ import java.util.List;
  */
 public class Searcher {
     private int pointID;
-    private int totalValue;
-    private int totalBestValue;
+    private int parentID;
+    private boolean out;
+    private double totalValue;
+    private double totalBestValue;
     //    private List<Searcher> nextSearchers;
     private int passednnum;
     private Searcher previous;
 
-    public Searcher(int pointID, int totalValue, int totalBestValue, Searcher previous) {
+    public Searcher(int pointID, double totalValue, double totalBestValue, Searcher previous) {
         this.pointID = pointID;
         this.totalValue = totalValue;
         this.totalBestValue = totalBestValue;
@@ -25,6 +27,29 @@ public class Searcher {
         }
     }
 
+    public Searcher(int parentID, int pointID, boolean out, Searcher previous) {
+        this.parentID = parentID;
+        this.pointID = pointID;
+        this.out = out;
+        this.previous = previous;
+    }
+
+    public int getParentID() {
+        return parentID;
+    }
+
+    public void setParentID(int parentID) {
+        this.parentID = parentID;
+    }
+
+    public boolean isOut() {
+        return out;
+    }
+
+    public void setOut(boolean out) {
+        this.out = out;
+    }
+
     public int getPassednnum() {
         return passednnum;
     }
@@ -33,11 +58,11 @@ public class Searcher {
         this.passednnum = passednnum;
     }
 
-    public int getTotalBestValue() {
+    public double getTotalBestValue() {
         return totalBestValue;
     }
 
-    public void setTotalBestValue(int totalBestValue) {
+    public void setTotalBestValue(double totalBestValue) {
         this.totalBestValue = totalBestValue;
     }
 
@@ -62,15 +87,15 @@ public class Searcher {
         this.previous = previous;
     }
 
-    public int getTotalValue() {
+    public double getTotalValue() {
         return totalValue;
     }
 
-    public void setTotalValue(int totalValue) {
+    public void setTotalValue(double totalValue) {
         this.totalValue = totalValue;
     }
 
     public int getSortValue() {
-        return (int)(totalBestValue - passednnum * 1);
+        return (int)(totalBestValue - passednnum * 3);
     }
 }
