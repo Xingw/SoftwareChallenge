@@ -7,6 +7,8 @@
  */
 package com.routesearch.route;
 
+import com.Model.LinkSpecialHeap;
+import com.Model.Linker;
 import com.Model.MinValueHeap;
 import com.Model.Point;
 import com.Model.Searcher;
@@ -42,7 +44,12 @@ public final class Route {
 
     private static MinValueHeap minValueHeap;
     //方向 true为正 false为反
-    private static boolean direction = false;
+    private static boolean direction = true;
+
+    private static LinkSpecialHeap linkSpecialHeap;
+
+    private static List<List<Integer>> route;
+    private static boolean linkover = false;
 
     /**
      * 你需要完成功能的入口
@@ -79,6 +86,7 @@ public final class Route {
 //            maxValue = 600;
 //        }
         for (short pas : pass) {
+            points[pas].setSpecial(true);
             points[pas].setGrade(100);
             for (Point point : points[pas].getPrevious()) {
                 RecursionGrade(point, 10, Math.pow(20, 1d / (10)));
@@ -90,7 +98,7 @@ public final class Route {
 
     private static void RecursionGrade(Point point, int count, double num) {
         if (count == 0) return;
-        point.setGrade(Math.pow(num, count));
+        point.setGrade(Math.pow(num, count) + 5);
         count--;
         for (Point point1 : point.getPrevious()) {
             RecursionGrade(point1, count, num);
@@ -149,7 +157,14 @@ public final class Route {
         for (int i = 0; i < topo[0].length; i++) {
             int value = topo[parent.getPointID()][i].getCost();
             if (value != 0) {
-                int bestvalue = (int) (value - points[i].getGrade() * 1);
+                double bestvalue = value - points[i].getGrade();
+//                if (bestvalue<=0 && !points[i].isSpecial())bestvalue = points[i].getGrade()/100;
+                if (points[i].isSpecial()) {
+                    minValueHeap.clean();
+//                    bestvalue =value - points[i].getGrade();
+                } else {
+//                    bestvalue = value * (1-points[i].getGrade()/100);
+                }
                 Searcher searcher = new Searcher(i, parent.getTotalValue() + value, parent
                         .getTotalBestValue() + bestvalue, parent);
                 //判断这个点是不是结尾
@@ -162,6 +177,7 @@ public final class Route {
                             LogUtil.printLog("First route");
                             FormatResult(direction);
                         } else if (searcher.getTotalValue() < currentminpoint.getTotalValue()) {
+                            LogUtil.printLog("other route");
                             currentminpoint = searcher;
                             FormatResult(direction);
                         }
@@ -285,13 +301,129 @@ public final class Route {
                 Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
                 topo[Integer.parseInt(info[1])][Integer.parseInt(info[2])] = data;
                 points[Integer.parseInt(info[2])].getPrevious().add(points[Integer.parseInt(info[1])]);
+                points[Integer.parseInt(info[1])].getNext().add(points[Integer.parseInt(info[2])]);
             } else {
                 Topo data = new Topo(Short.parseShort(info[0]), Short.parseShort(info[3]));
                 topo[Integer.parseInt(info[2])][Integer.parseInt(info[1])] = data;
                 points[Integer.parseInt(info[1])].getPrevious().add(points[Integer.parseInt
                         (info[2])]);
+                points[Integer.parseInt(info[2])].getNext().add(points[Integer.parseInt(info[1])]);
             }
         }
+    }
+
+//    private static void DFSarithmetic(){
+//        Searcher startpoint = new Searcher(start,0,0,null);
+//        for (Point point : points[start].getNext()) {
+//            Searcher searcher = new Searcher(point.getPointID(),0, 0,startpoint);
+//            RecursionDFS(point,searcher);
+//        }
+//    }
+//
+//    private static void RecursionDFS(Point point,Searcher previous) {
+//        if (currentminpoint != null || point.getNext().size() == 0) return;
+//        for (Point point1 : point.getNext()) {
+//            Searcher searcher = new Searcher(point1.getPointID(),0, 0,previous);
+//            if(searcher.getPointID() == end){
+//                if(hasallspecialpoint(searcher)){
+//                    currentminpoint = searcher;
+//                    return;
+//                }
+//                continue;
+//            }
+//            if (haspassedpoint(searcher)) continue;
+//            RecursionDFS(point1,searcher);
+//        }
+//    }
+
+    private static void LinkSpecialPoint() {
+        linkSpecialHeap = LinkSpecialHeap.getInstance();
+        for (short pas : pass) {
+            for (Point point : points[pas].getPrevious()) {
+                //起点即是希望
+                Linker linker = new Linker(points[pas].getPointID(), point.getPointID(),
+                        false, new ArrayList<Integer>());
+                linkSpecialHeap.getSearcherList().add(linker);
+            }
+        }
+        while (!linkover) {
+            Linker searcher = linkSpecialHeap.popMin();
+            findnextLinkPoint(searcher);
+        }
+        findstartandend();
+    }
+
+    private static void findstartandend() {
+        int routstart = route.get(0).get(0);
+        int routend = route.get(0).get(route.get(0).size() - 1);
+    }
+
+    private static void findnextLinkPoint(Linker previous) {
+        Point prepoint = points[previous.getPointID()];
+        Linker existLinker = prepoint.getLinker(previous.isOut());
+        if (existLinker != null) {
+            linkSpecialHeap.popUseless(existLinker, previous);
+            //与其他的特殊点相交
+            List<Integer> pointList = new ArrayList<>();
+            if (previous.isOut()) {
+                pointList.addAll(existLinker.getPoints());
+                for (int i = previous.getPoints().size() - 1; i >= 0; i--) {
+                    pointList.add(previous.getPoints().get(i));
+                }
+            } else {
+                pointList.addAll(previous.getPoints());
+                for (int i = existLinker.getPoints().size() - 1; i >= 0; i--) {
+                    pointList.add(existLinker.getPoints().get(i));
+                }
+            }
+            int Linkstart = pointList.get(0);
+            int Linkend = pointList.get(pointList.size() - 1);
+            if (route.size() != 0) {
+                for (List<Integer> list : route) {
+                    //头尾相同则拼接
+                    if (list.get(0) == Linkend) {
+                        pointList.remove(pointList.size() - 1);
+                        pointList.addAll(list);
+                        route.remove(list);
+                        route.add(pointList);
+                    } else if (list.get(list.size() - 1) == Linkstart) {
+                        pointList.remove(0);
+                        list.addAll(pointList);
+                    }
+                }
+                if (hasallspecialpoint(route.get(0))) {
+                    linkover = true;
+                    return;
+                }
+            } else {
+                route.add(pointList);
+            }
+        }
+        List<Point> pointList;
+        if (previous.isOut()) {
+            pointList = prepoint.getNext();
+        } else {
+            pointList = prepoint.getPrevious();
+        }
+        for (Point point : pointList) {
+            Linker linker = new Linker(previous.getParentID(), point.getPointID(), previous.isOut(),
+                    previous.getPoints());
+            point.setLinker(linker);
+            linkSpecialHeap.getSearcherList().add(linker);
+        }
+    }
+
+    private static boolean hasallspecialpoint(List<Integer> integers) {
+        int passnum = pass.length;
+        for (Integer integer : integers) {
+            for (short pas : pass) {
+                if (integer == pas) {
+                    passnum--;
+                }
+            }
+            if (passnum == 0) return true;
+        }
+        return false;
     }
 
     private static class Task extends TimerTask {
@@ -302,4 +434,6 @@ public final class Route {
             timeout = true;
         }
     }
+
+
 }

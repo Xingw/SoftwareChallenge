@@ -18,6 +18,9 @@ public class MinValueHeap {
 
     private static MinValueHeap single=null;
 
+    public void clean(){
+        single = new MinValueHeap();
+    }
     public static MinValueHeap getInstance(){
         if (single == null){
             single = new MinValueHeap();

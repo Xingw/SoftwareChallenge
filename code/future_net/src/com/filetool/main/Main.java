@@ -16,10 +16,10 @@ public class Main {
             "\\case0\\";
 
     public static void main(String[] args) {
-//        args = new String[3];
-//        args[0] = test + "topo.csv";
-//        args[1] = test + "demand.csv";
-//        args[2] = test + " sample_result.csv";
+        args = new String[3];
+        args[0] = test + "topo.csv";
+        args[1] = test + "demand.csv";
+        args[2] = test + " sample_result.csv";
         if (args.length != 3) {
             System.err.println("please input args: graphFilePath, conditionFilePath, resultFilePath");
             return;
