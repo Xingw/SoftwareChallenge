@@ -20,8 +20,9 @@ public class Point {
 
     private Linker out;
     private Linker in;
+    private boolean linkstate = false;
     private int prespecial;
-    private List<Integer> Link;
+    private int nextspecial;
 
     public Point(int pointID) {
         this.pointID = pointID;
@@ -30,14 +31,16 @@ public class Point {
         this.grade = 0;
         this.special = false;
         this.prespecial = -1;
+        this.nextspecial = -1;
     }
 
-    public List<Integer> getLink() {
-        return Link;
+
+    public int getNextspecial() {
+        return nextspecial;
     }
 
-    public void setLink(List<Integer> link) {
-        Link = link;
+    public void setNextspecial(int nextspecial) {
+        this.nextspecial = nextspecial;
     }
 
     public int getPrespecial() {
@@ -89,18 +92,58 @@ public class Point {
     }
 
     public void setLinker(Linker linker){
-        if(linker.isOut()){
+        if(special){
+            out = linker;
+        }else if(linker.isOut()){
             out = linker;
         }else {
             in = linker;
         }
     }
 
+    public void cleanLinker(Linker linker){
+        if(linker.isOut()){
+            out = null;
+        }else {
+            in = null;
+        }
+    }
+
     public Linker getLinker(boolean out){
+        if(special){
+            return this.out;
+        }
         if(!out){
             return this.out;
         }else{
             return this.in;
+        }
+    }
+
+    public void cleanLinker() {
+        out = null;
+        in = null;
+    }
+
+    public boolean isLinkstate() {
+        return linkstate;
+    }
+
+    public void setLinkstate(boolean linkstate) {
+        this.linkstate = linkstate;
+    }
+
+    public void cleanLinkernext() {
+        for (Point point : next) {
+            if (point.isLinkstate()|| point.isSpecial())continue;
+            point.cleanLinker();
+        }
+    }
+
+    public void cleanLinkerpre() {
+        for (Point previou : previous) {
+            if (previou.isLinkstate() || previou.isSpecial())continue;
+            previou.cleanLinker();
         }
     }
 }

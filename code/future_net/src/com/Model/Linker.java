@@ -17,7 +17,6 @@ public class Linker {
         this.pointID = pointID;
         this.out = out;
         this.points = points;
-        this.points.add(pointID);
     }
 
     public int getParentID() {
@@ -51,5 +50,13 @@ public class Linker {
 
     public void setPoints(List<Integer> points) {
         this.points = points;
+    }
+
+    public void add(int id) {
+        if (out){
+            points.add(id);
+        }else {
+            points.add(0,id);
+        }
     }
 }
