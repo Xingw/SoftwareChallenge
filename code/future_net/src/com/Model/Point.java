@@ -146,4 +146,8 @@ public class Point {
             previou.cleanLinker();
         }
     }
+
+    public void setLinker(Linker nextLinker, boolean b) {
+        out = nextLinker;
+    }
 }

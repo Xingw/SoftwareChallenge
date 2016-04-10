@@ -44,10 +44,6 @@ public class LinkSpecialHeap {
         return searcherList;
     }
 
-    public static void setSearcherList(List<Linker> searcherList) {
-        LinkSpecialHeap.searcherList = searcherList;
-    }
-
     public boolean isHeadEmpty() {
         return searcherList.isEmpty();
     }
@@ -60,5 +56,12 @@ public class LinkSpecialHeap {
             }
         }
         searcherList.removeAll(removelist);
+    }
+
+    public List<Linker> cleanall() {
+        List<Linker> removelist = new ArrayList<>();
+        removelist = searcherList;
+        searcherList.clear();
+        return removelist;
     }
 }

@@ -1,5 +1,6 @@
 package com.Model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -11,6 +12,14 @@ public class Linker {
     private boolean out;
     //    private List<Searcher> nextSearchers;
     private List<Integer> points;
+
+    public Linker(int parentID) {
+        this.pointID = parentID;
+        this.parentID = parentID;
+        this.out = true;
+        this.points = new ArrayList<>();
+        points.add(parentID);
+    }
 
     public Linker(int parentID, int pointID, boolean out, List<Integer> points) {
         this.parentID = parentID;

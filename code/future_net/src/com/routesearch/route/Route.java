@@ -7,6 +7,7 @@
  */
 package com.routesearch.route;
 
+import com.Model.InsertSpecialHeap;
 import com.Model.LinkSpecialHeap;
 import com.Model.Linker;
 import com.Model.MinValueHeap;
@@ -47,6 +48,7 @@ public final class Route {
     private static boolean direction = true;
 
     private static LinkSpecialHeap linkSpecialHeap;
+    private static InsertSpecialHeap insertSpecialHeap;
 
     private static List<List<Integer>> route = new ArrayList<>();
     private static boolean linkover = false;
@@ -384,23 +386,194 @@ public final class Route {
     private static void LinkSpecialPoint() {
         linkSpecialHeap = LinkSpecialHeap.getInstance();
         points[start].setLinkstate(true);
+        points[start].setLinker(new Linker(start));
         points[end].setLinkstate(true);
+        points[end].setLinker(new Linker(end));
         initLinker(start, true);
         initLinker(end, false);
         for (short pas : pass) {
             initLinker(pas, true);
             initLinker(pas, false);
         }
+
         while (!linkSpecialHeap.isHeadEmpty()) {
+            if (hasPointRoute(points[start].getLinker(false).getPoints(), end)) break;
             Linker searcher = linkSpecialHeap.popMin();
             findnextLinkPoint(searcher);
         }
+        //如果已经连成的一条路没有包括所有的特殊点
+        while (hasPointRoute(points[start].getLinker(false).getPoints(), end)) {
+            linkSpecialHeap.cleanall();
+            List<Integer> lonelypoint = new ArrayList<>();
+            List<Integer> removespecial = findallspecialpoints();
+            for (short pas : pass) {
+                boolean skip = false;
+                for (Integer integer : removespecial) {
+                    if (integer == pas)skip = true;
+                }
+                if (!skip)lonelypoint.add((int)pas);
+            }
+            Point lonepoint = points[lonelypoint.get(0)];
+            findnearRoute(lonepoint);
+        }
     }
 
-    private static boolean hasallspecialpoint(Point head) {
-        if(head.getLinker(false)==null)return false;
-        List<Integer> list = head.getLinker(false).getPoints();
-        return hasallspecialpoint(list);
+    private static void findnearRoute(Point lonepoint) {
+        Integer ID = lonepoint.getPointID();
+        List<Linker> preSpecial = new ArrayList<>();
+        List<Linker> nextSpecial = new ArrayList<>();
+        for (Point point : lonepoint.getPrevious()) {
+            Linker linker = new Linker(lonepoint.getPointID(), point.getPointID(),
+                    false, new ArrayList<Integer>());
+            linker.add(lonepoint.getPointID());
+            linker.add(point.getPointID());
+            if ((point.isSpecial() || point.getPointID() == start)
+                    && point.isLinkstate()) {
+                //如果这个特殊点已经连接了，说明是线上的点
+                preSpecial.add(linker);
+            } else {
+                if(point.getPointID() == end) continue;
+                linkSpecialHeap.getSearcherList().add(linker);
+            }
+        }
+        for (Point point : lonepoint.getNext()) {
+            Linker linker = new Linker(lonepoint.getPointID(), point.getPointID(),
+                    true, new ArrayList<Integer>());
+            linker.add(lonepoint.getPointID());
+            linker.add(point.getPointID());
+            if ((point.isSpecial() || point.getPointID() == end)
+                    && point.isLinkstate()) {
+                //如果这个特殊点已经连接了，说明是线上的点
+                nextSpecial.add(linker);
+                //连接成功直接返回
+                if(checkAndInsert(preSpecial, nextSpecial, lonepoint))return;
+            } else {
+                if(point.getPointID() == start) continue;
+                linkSpecialHeap.getSearcherList().add(linker);
+            }
+        }
+        //邻接特殊点不符合要求则开始广搜
+        while (!linkSpecialHeap.isHeadEmpty()) {
+            Linker previous = linkSpecialHeap.popMin();
+            if(previous.isOut()) {
+                List<Point> pointList=points[previous.getPointID()].getNext();
+                for (Point point : pointList) {
+                    Linker linker = new Linker(previous.getPointID(), point.getPointID(),
+                            false,previous.getPoints());
+                    linker.add(point.getPointID());
+                    if ((point.isSpecial() || point.getPointID() == start)
+                            && point.isLinkstate()) {
+                        //如果这个特殊点已经连接了，说明是线上的点
+                        preSpecial.add(linker);
+                        if(checkAndInsert(preSpecial, nextSpecial, lonepoint))return;
+                    } else {
+                        if (point.getPointID() == end) continue;
+                        linkSpecialHeap.getSearcherList().add(linker);
+                    }
+                }
+            }else{
+                List<Point> pointList=points[previous.getPointID()].getPrevious();
+                for (Point point : pointList) {
+                    Linker linker = new Linker(previous.getPointID(), point.getPointID(),
+                            true, previous.getPoints());
+                    linker.add(point.getPointID());
+                    if ((point.isSpecial() || point.getPointID() == end)
+                            && point.isLinkstate()) {
+                        //如果这个特殊点已经连接了，说明是线上的点
+                        nextSpecial.add(linker);
+                        //连接成功直接返回
+                        if(checkAndInsert(preSpecial, nextSpecial, lonepoint))return;
+                    } else {
+                        if(point.getPointID() == start) continue;
+                        linkSpecialHeap.getSearcherList().add(linker);
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean checkAndInsert(List<Linker> preSpecial, List<Linker> nextSpecial, Point lonepoint) {
+        if (preSpecial.size() > 0 && nextSpecial.size() > 0) {
+            Point prePoint = null;
+            Point nextPoint = null;
+            Linker preLinker = null;
+            Linker nextLinker = null;
+            if (lonepoint.getPrespecial() != -1 && lonepoint.getNextspecial() != -1) {
+                for (Linker pre : preSpecial) {
+                    for (Linker next : nextSpecial) {
+                        if (!(pre.getPointID() == lonepoint.getPrespecial() && next.getPointID()
+                                == lonepoint.getNextspecial())) {
+                            if(pre.getPointID() == next.getPointID())continue;
+                            preLinker = pre;
+                            nextLinker = next;
+                            prePoint = points[pre.getPointID()];
+                            nextPoint = points[next.getPointID()];
+                            break;
+                        }
+                    }
+                }
+                if (prePoint == null || nextPoint == null) return false;
+            } else {
+                preLinker = preSpecial.get(0);
+                nextLinker = nextSpecial.get(0);
+                if(preLinker.getPointID() == nextLinker.getPointID())return false;
+                prePoint = points[preLinker.getPointID()];
+                nextPoint = points[nextLinker.getPointID()];
+            }
+            //断开连接
+            List<Integer> removeList = new ArrayList<>();
+            removeList.addAll(prePoint.getLinker(false).getPoints());
+            removeList.remove(0);
+            prePoint.getLinker(false).getPoints().removeAll(removeList);
+            Point removePoint = prePoint;
+            while (removePoint.getPrespecial() != -1) {
+                removePoint = points[removePoint.getPrespecial()];
+                removePoint.getLinker(false).getPoints().removeAll(removeList);
+            }
+            //清除连接状态
+            Point middlePoint = prePoint;
+            while (prePoint.getNextspecial() != -1 && middlePoint.getNextspecial()!=nextPoint.getPointID()) {
+                middlePoint = points[middlePoint.getNextspecial()];
+                middlePoint.setLinkstate(false);
+            }
+
+            //接路——前
+            List<Integer> routeList = new ArrayList<>();
+            nextLinker.getPoints().remove(nextLinker.getPoints().size() - 1);
+            routeList.addAll(nextLinker.getPoints());
+            routeList.addAll(nextPoint.getLinker(false).getPoints());
+            Linkpoints(routeList);
+            nextLinker.setPoints(routeList);
+            lonepoint.setLinker(nextLinker,true);
+            lonepoint.setNextspecial(nextPoint.getPointID());
+            lonepoint.setPrespecial(-1);
+            nextPoint.setPrespecial(lonepoint.getPointID());
+            SavePointToSpecialPoint(lonepoint, nextPoint);
+            //接路——后
+            routeList = new ArrayList<>();
+            preLinker.getPoints().remove(0);
+            routeList.addAll(prePoint.getLinker(false).getPoints());
+            routeList.addAll(preLinker.getPoints());
+            Linkpoints(routeList);
+            preLinker.setPoints(routeList);
+            prePoint.setLinker(preLinker,true);
+            prePoint.setNextspecial(lonepoint.getPointID());
+            lonepoint.setPrespecial(prePoint.getPointID());
+            SavePointToSpecialPoint(prePoint, lonepoint);
+            return true;
+        }
+        return false;
+    }
+
+    private static List<Integer> findallspecialpoints() {
+        List<Integer> special = new ArrayList<>();
+        Point point = points[end];
+        while (point.getPrespecial() != -1) {
+            point = points[point.getPrespecial()];
+            special.add(point.getPointID());
+        }
+        special.remove(special.size()-1);
+        return special;
     }
 
     private static void initLinker(int ID, boolean out) {
@@ -414,10 +587,12 @@ public final class Route {
                 if (point.isSpecial()) {
                     //如果这个特殊点没有连接，那就连接他
                     if (point.getPrespecial() == -1 && point.getNextspecial() != ID) {
-                        if(hasRingRoute(points[ID], points[point.getPointID()]))continue;
+                        if (hasRingRoute(points[ID], points[point.getPointID()])) continue;
                         points[ID].setLinker(linker);
                         point.setPrespecial(ID);
                         points[ID].setNextspecial(point.getPointID());
+                        point.setLinkstate(true);
+                        points[ID].setLinkstate(true);
                         SavePointToSpecialPoint(points[ID], points[point.getPointID()]);
                         points[ID].cleanLinkernext();
                         linkSpecialHeap.popUseless(ID);
@@ -430,7 +605,7 @@ public final class Route {
                         continue;
                     Linker existLinker = point.getLinker(linker.isOut());
                     if (existLinker != null) {
-                        if(hasRingRoute(points[ID], points[point.getPointID()]))continue;
+                        if (hasRingRoute(points[ID], points[point.getPointID()])) continue;
                         //与其他的特殊点的遍历器相交
                         List<Integer> routeList = new ArrayList<>();
                         List<Linker> removeList = linkSpecialHeap.popUseless(existLinker, linker);
@@ -441,9 +616,11 @@ public final class Route {
                         Linkpoints(routeList);
                         Point outpoint = points[linker.getParentID()];
                         outpoint.setLinker(linker);
+                        outpoint.setLinkstate(true);
                         SavePointToSpecialPoint(linker, existLinker);
                         outpoint.setNextspecial(existLinker.getParentID());
                         points[existLinker.getParentID()].setPrespecial(linker.getParentID());
+                        points[existLinker.getParentID()].setLinkstate(true);
                         CleanPointLinker(removeList);
                         break;
                     }
@@ -460,9 +637,11 @@ public final class Route {
                 linker.add(point.getPointID());
                 if (point.isSpecial()) {
                     if (point.getNextspecial() == -1 && point.getPrespecial() != ID) {
-                        if(hasRingRoute(points[point.getPointID()],points[ID]))continue;
+                        if (hasRingRoute(points[point.getPointID()], points[ID])) continue;
                         point.setLinker(linker);
                         point.setNextspecial(ID);
+                        point.setLinkstate(true);
+                        points[ID].setLinkstate(true);
                         points[ID].setPrespecial(point.getPointID());
                         SavePointToSpecialPoint(points[point.getPointID()], points[ID]);
                         points[ID].cleanLinkerpre();
@@ -475,7 +654,7 @@ public final class Route {
                         continue;
                     Linker existLinker = point.getLinker(linker.isOut());
                     if (existLinker != null) {
-                        if(hasRingRoute(points[point.getPointID()],points[ID]))continue;
+                        if (hasRingRoute(points[point.getPointID()], points[ID])) continue;
                         List<Integer> routeList = new ArrayList<>();
                         List<Linker> removeList = linkSpecialHeap.popUseless(existLinker, linker);
                         linker.getPoints().remove(0);
@@ -485,9 +664,11 @@ public final class Route {
                         Linkpoints(routeList);
                         Point outpoint = points[existLinker.getParentID()];
                         outpoint.setLinker(existLinker);
+                        outpoint.setLinkstate(true);
                         SavePointToSpecialPoint(existLinker, linker);
                         outpoint.setNextspecial(linker.getParentID());
                         points[linker.getParentID()].setPrespecial(existLinker.getParentID());
+                        points[linker.getParentID()].setLinkstate(true);
                         CleanPointLinker(removeList);
                         break;
                     }
@@ -498,7 +679,7 @@ public final class Route {
         }
     }
 
-    private static boolean hasRingRoute(Point out,Point in) {
+    private static boolean hasRingRoute(Point out, Point in) {
         int recordout = out.getNextspecial();
         int recordin = in.getPrespecial();
         out.setNextspecial(in.getPointID());
@@ -523,10 +704,11 @@ public final class Route {
         return false;
     }
 
-    private static boolean hasPointRoute(short id) {
-        for (List<Integer> integers : route) {
-            for (Integer integer : integers) {
-                if (id == integer) return true;
+    private static boolean hasPointRoute(List<Integer> route, short id) {
+        if (hasallspecialpoint(route)) return false;
+        for (Integer integer : route) {
+            if (id == integer) {
+                return true;
             }
         }
         return false;
@@ -561,7 +743,8 @@ public final class Route {
                 List<Integer> routeList = new ArrayList<>();
                 List<Linker> removeList = linkSpecialHeap.popUseless(existLinker, previous);
                 if (previous.isOut()) {
-                    if(hasRingRoute(points[previous.getParentID()],points[existLinker.getParentID()]))continue;
+                    if (hasRingRoute(points[previous.getParentID()], points[existLinker.getParentID()]))
+                        continue;
                     routeList.addAll(previous.getPoints());
                     routeList.addAll(existLinker.getPoints());
                     previous.setPoints(routeList);
@@ -574,7 +757,8 @@ public final class Route {
                     CleanPointLinker(removeList);
                     break;
                 } else {
-                    if(hasRingRoute(points[existLinker.getParentID()],points[previous.getParentID()]))continue;
+                    if (hasRingRoute(points[existLinker.getParentID()], points[previous.getParentID()]))
+                        continue;
                     routeList.addAll(existLinker.getPoints());
                     routeList.addAll(previous.getPoints());
                     existLinker.setPoints(routeList);
@@ -606,14 +790,21 @@ public final class Route {
     }
 
     private static void SavePointToSpecialPoint(Point outpoint, Point inpoint) {
+        if (inpoint.getLinker(false) == null) {
+            inpoint.setLinker(new Linker(inpoint.getPointID()));
+        }
+        //如果in节点前面有路径则向后传递
         if (inpoint.getNextspecial() != -1) {
-            List<Integer> points = inpoint.getLinker(true).getPoints();
+            List<Integer> points = new ArrayList<>();
+            points.addAll(inpoint.getLinker(true).getPoints());
             points.remove(0);
             outpoint.getLinker(false).getPoints().addAll(points);
         }
+        //如果out节点后面有路径则向后传递
         if (outpoint.getPrespecial() != -1) {
             Point prepoint = outpoint;
-            List<Integer> pointsList = outpoint.getLinker(true).getPoints();
+            List<Integer> pointsList = new ArrayList<>();
+            pointsList.addAll(outpoint.getLinker(true).getPoints());
             pointsList.remove(0);
             while (prepoint.getPrespecial() != -1) {
                 prepoint = points[prepoint.getPrespecial()];
@@ -729,10 +920,10 @@ public final class Route {
 //    }
 
     private static boolean hasallspecialpoint(List<Integer> integers) {
-        int passnum = pass.length;
+        int passnum = pass.length + 2;
         for (Integer integer : integers) {
             for (short pas : pass) {
-                if (integer == pas) {
+                if (integer == pas || integer == start || integer == end) {
                     passnum--;
                     break;
                 }
