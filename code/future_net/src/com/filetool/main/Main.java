@@ -12,9 +12,8 @@ import com.routesearch.route.Route;
  * @since 2016-3-1
  */
 public class Main {
-    public static String test = "E:\\Code\\Java\\Softwarechallenge-x\\more\\case\\case50-10" +
-            "\\case0\\";
-
+    public static String test =
+    "E:\\Code\\Java\\Softwarechallenge-x\\case1\\";
     public static void main(String[] args) {
         args = new String[3];
         args[0] = test + "topo.csv";

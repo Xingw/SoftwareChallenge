@@ -21,14 +21,17 @@ public class LinkSpecialHeap {
         return single;
     }
 
-    public static void popUseless(Linker existLinker,Linker preLinker){
+    public static List<Linker> popUseless(Linker existLinker,Linker preLinker){
+        List<Linker> removelist = new ArrayList<>();
         for (Linker linker : searcherList) {
             if ((linker.getParentID() == existLinker.getParentID() && linker.isOut() ==
                     existLinker.isOut()) || (linker.getParentID() == preLinker.getParentID() && linker.isOut() ==
                     preLinker.isOut())){
-                searcherList.remove(linker);
+                 removelist.add(linker);
             }
         }
+        searcherList.removeAll(removelist);
+        return removelist;
     }
 
     public static Linker popMin(){
@@ -41,11 +44,24 @@ public class LinkSpecialHeap {
         return searcherList;
     }
 
-    public static void setSearcherList(List<Linker> searcherList) {
-        LinkSpecialHeap.searcherList = searcherList;
-    }
-
     public boolean isHeadEmpty() {
         return searcherList.isEmpty();
+    }
+
+    public void popUseless(int id) {
+        List<Linker> removelist = new ArrayList<>();
+        for (Linker linker : searcherList) {
+            if (linker.getParentID() == id){
+                removelist.add(linker);
+            }
+        }
+        searcherList.removeAll(removelist);
+    }
+
+    public List<Linker> cleanall() {
+        List<Linker> removelist = new ArrayList<>();
+        removelist = searcherList;
+        searcherList.clear();
+        return removelist;
     }
 }
