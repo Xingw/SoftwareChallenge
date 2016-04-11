@@ -135,14 +135,14 @@ public class Point {
 
     public void cleanLinkernext() {
         for (Point point : next) {
-            if (point.isLinkstate()|| point.isSpecial())continue;
+            if (point.isSpecial() || point.isLinkstate())continue;
             point.cleanLinker();
         }
     }
 
     public void cleanLinkerpre() {
         for (Point previou : previous) {
-            if (previou.isLinkstate() || previou.isSpecial())continue;
+            if (previou.isSpecial() || previou.isLinkstate())continue;
             previou.cleanLinker();
         }
     }

@@ -18,6 +18,7 @@ import com.filetool.util.LogUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -38,21 +39,16 @@ public final class Route {
     private static short[] pass;
     //计时
     public static boolean timeout = false;
-
-    public static int maxValue = 2000;
-
     private static Searcher currentminpoint = null;
-
     private static MinValueHeap minValueHeap;
     //方向 true为正 false为反
     private static boolean direction = true;
-
     private static LinkSpecialHeap linkSpecialHeap;
     private static InsertSpecialHeap insertSpecialHeap;
-
     private static List<List<Integer>> route = new ArrayList<>();
     private static boolean linkover = false;
     private static boolean needreturn = false;
+    private static boolean singleinsert = true;
 
     /**
      * 你需要完成功能的入口
@@ -230,9 +226,6 @@ public final class Route {
                     if (haspassedpoint(searcher)) {
                         continue;
                     }
-                    if (searcher.getTotalValue() > maxValue) {
-                        continue;
-                    }
                     //判断这个点如果超出了最短路径则丢弃
                     if (currentminpoint != null) {
                         if (searcher.getTotalValue() < currentminpoint.getTotalValue()) {
@@ -401,10 +394,13 @@ public final class Route {
             Linker searcher = linkSpecialHeap.popMin();
             findnextLinkPoint(searcher);
         }
+        linkover = true;
+        int num = 0;
         //如果已经连成的一条路没有包括所有的特殊点
         while (hasPointRoute(points[start].getLinker(false).getPoints(), end)) {
-            linkSpecialHeap.cleanall();
+            //查找没有连接的特殊点
             List<Integer> lonelypoint = new ArrayList<>();
+            //所有在线上的特殊点
             List<Integer> removespecial = findallspecialpoints();
             for (short pas : pass) {
                 boolean skip = false;
@@ -413,8 +409,22 @@ public final class Route {
                 }
                 if (!skip)lonelypoint.add((int)pas);
             }
-            Point lonepoint = points[lonelypoint.get(0)];
-            findnearRoute(lonepoint);
+            for (Integer integer : lonelypoint) {
+                points[integer].setLinkstate(false);
+            }
+            if(lonelypoint.size() == num){
+                singleinsert = false;
+            }
+            num = lonelypoint.size();
+            for (Integer integer : lonelypoint) {
+                Point lonepoint = points[integer];
+                if (lonepoint.isLinkstate())continue;
+                linkSpecialHeap.cleanall();
+                findnearRoute(lonepoint);
+                System.out.println(lonepoint.getPointID()+points[start].getLinker(false)
+                        .getPoints().toString
+                        ());
+            }
         }
     }
 
@@ -458,13 +468,13 @@ public final class Route {
             if(previous.isOut()) {
                 List<Point> pointList=points[previous.getPointID()].getNext();
                 for (Point point : pointList) {
-                    Linker linker = new Linker(previous.getPointID(), point.getPointID(),
-                            false,previous.getPoints());
+                    Linker linker = new Linker(ID, point.getPointID(),
+                            true,previous.getPoints());
                     linker.add(point.getPointID());
                     if ((point.isSpecial() || point.getPointID() == start)
                             && point.isLinkstate()) {
                         //如果这个特殊点已经连接了，说明是线上的点
-                        preSpecial.add(linker);
+                        nextSpecial.add(linker);
                         if(checkAndInsert(preSpecial, nextSpecial, lonepoint))return;
                     } else {
                         if (point.getPointID() == end) continue;
@@ -474,13 +484,13 @@ public final class Route {
             }else{
                 List<Point> pointList=points[previous.getPointID()].getPrevious();
                 for (Point point : pointList) {
-                    Linker linker = new Linker(previous.getPointID(), point.getPointID(),
-                            true, previous.getPoints());
+                    Linker linker = new Linker(ID, point.getPointID(),
+                            false, previous.getPoints());
                     linker.add(point.getPointID());
                     if ((point.isSpecial() || point.getPointID() == end)
                             && point.isLinkstate()) {
                         //如果这个特殊点已经连接了，说明是线上的点
-                        nextSpecial.add(linker);
+                        preSpecial.add(linker);
                         //连接成功直接返回
                         if(checkAndInsert(preSpecial, nextSpecial, lonepoint))return;
                     } else {
@@ -498,27 +508,56 @@ public final class Route {
             Point nextPoint = null;
             Linker preLinker = null;
             Linker nextLinker = null;
+            boolean breakout = false;
             if (lonepoint.getPrespecial() != -1 && lonepoint.getNextspecial() != -1) {
                 for (Linker pre : preSpecial) {
                     for (Linker next : nextSpecial) {
                         if (!(pre.getPointID() == lonepoint.getPrespecial() && next.getPointID()
                                 == lonepoint.getNextspecial())) {
+                            //循环的点不行
                             if(pre.getPointID() == next.getPointID())continue;
-                            preLinker = pre;
-                            nextLinker = next;
+                            //倒着插入的不行
+                            if(points[next.getPointID()].getLinker(false).getPoints().contains(pre
+                                    .getPointID())) continue;
+                            //经过同样点的不行
+                            if(haspassedsamepoint(pre,next))continue;
                             prePoint = points[pre.getPointID()];
                             nextPoint = points[next.getPointID()];
+                            if (singleinsert){
+                                if(prePoint.getNextspecial() != nextPoint.getPointID())
+                                    return true;
+                            }
+                            preLinker = pre;
+                            nextLinker = next;
+                            breakout = true;
                             break;
                         }
+                        if (breakout) break;
                     }
                 }
                 if (prePoint == null || nextPoint == null) return false;
             } else {
-                preLinker = preSpecial.get(0);
-                nextLinker = nextSpecial.get(0);
-                if(preLinker.getPointID() == nextLinker.getPointID())return false;
-                prePoint = points[preLinker.getPointID()];
-                nextPoint = points[nextLinker.getPointID()];
+                for (Linker pre : preSpecial) {
+                    for (Linker next : nextSpecial) {
+                        if(pre.getPointID() == next.getPointID())continue;
+                        if(points[next.getPointID()].getLinker(false).getPoints().contains(pre
+                                .getPointID()))
+                            continue;
+                        if(haspassedsamepoint(pre,next))continue;
+                        prePoint = points[pre.getPointID()];
+                        nextPoint = points[next.getPointID()];
+                        if (singleinsert){
+                            if(prePoint.getNextspecial() != nextPoint.getPointID())
+                                return true;
+                        }
+                        preLinker = pre;
+                        nextLinker = next;
+                        breakout = true;
+                        break;
+                    }
+                    if (breakout)break;
+                }
+                if (prePoint == null || nextPoint == null) return false;
             }
             //断开连接
             List<Integer> removeList = new ArrayList<>();
@@ -532,25 +571,19 @@ public final class Route {
             }
             //清除连接状态
             Point middlePoint = prePoint;
-            while (prePoint.getNextspecial() != -1 && middlePoint.getNextspecial()!=nextPoint.getPointID()) {
+            while (middlePoint.getNextspecial() != -1 && middlePoint.getNextspecial()!=nextPoint.getPointID()) {
                 middlePoint = points[middlePoint.getNextspecial()];
                 middlePoint.setLinkstate(false);
             }
 
             //接路——前
-            List<Integer> routeList = new ArrayList<>();
-            nextLinker.getPoints().remove(nextLinker.getPoints().size() - 1);
-            routeList.addAll(nextLinker.getPoints());
-            routeList.addAll(nextPoint.getLinker(false).getPoints());
-            Linkpoints(routeList);
-            nextLinker.setPoints(routeList);
             lonepoint.setLinker(nextLinker,true);
             lonepoint.setNextspecial(nextPoint.getPointID());
-            lonepoint.setPrespecial(-1);
             nextPoint.setPrespecial(lonepoint.getPointID());
+            lonepoint.setPrespecial(-1);
             SavePointToSpecialPoint(lonepoint, nextPoint);
             //接路——后
-            routeList = new ArrayList<>();
+            List<Integer> routeList = new ArrayList<>();
             preLinker.getPoints().remove(0);
             routeList.addAll(prePoint.getLinker(false).getPoints());
             routeList.addAll(preLinker.getPoints());
@@ -558,11 +591,22 @@ public final class Route {
             preLinker.setPoints(routeList);
             prePoint.setLinker(preLinker,true);
             prePoint.setNextspecial(lonepoint.getPointID());
-            lonepoint.setPrespecial(prePoint.getPointID());
+            lonepoint.setPrespecial(lonepoint.getPointID());
             SavePointToSpecialPoint(prePoint, lonepoint);
             return true;
         }
         return false;
+    }
+
+    private static boolean haspassedsamepoint(Linker pre, Linker next) {
+        int samenumber = 0;
+        for (Integer integer : pre.getPoints()) {
+            for (Integer integer1 : next.getPoints()) {
+                if (integer == integer1) samenumber++;
+            }
+        }
+        if (samenumber<=1)return false;
+        return true;
     }
 
     private static List<Integer> findallspecialpoints() {
@@ -799,6 +843,29 @@ public final class Route {
             points.addAll(inpoint.getLinker(true).getPoints());
             points.remove(0);
             outpoint.getLinker(false).getPoints().addAll(points);
+        }
+        if (linkover){
+            List<Integer> route = new ArrayList<>();
+            route.addAll(outpoint.getLinker(false).getPoints());
+            route.remove(0);
+            Point nextpoint = outpoint;
+            for (Integer integer : route) {
+                if(points[integer].isSpecial()){
+                    points[integer].setPrespecial(nextpoint.getPointID());
+                    nextpoint.setNextspecial(integer);
+                    nextpoint = points[integer];
+                }
+                if (integer == inpoint.getPointID())break;
+            }
+            nextpoint = outpoint;
+            while (nextpoint.getNextspecial() != -1 && nextpoint.getNextspecial() != inpoint.getPointID()) {
+                nextpoint = points[nextpoint.getNextspecial()];
+                while (route.get(0) != nextpoint.getPointID()) {
+                    route.remove(0);
+                }
+                nextpoint.setLinkstate(true);
+                nextpoint.setLinker(new Linker(nextpoint.getPointID(),route));
+            }
         }
         //如果out节点后面有路径则向后传递
         if (outpoint.getPrespecial() != -1) {

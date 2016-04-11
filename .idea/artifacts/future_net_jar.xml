@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="future_net:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/future_net_jar</output-path>
+    <root id="archive" name="future_net.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/code/future_net/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="future_net" />
+    </root>
+  </artifact>
+</component>

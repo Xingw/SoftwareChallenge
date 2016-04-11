@@ -20,12 +20,20 @@ public class Linker {
         this.points = new ArrayList<>();
         points.add(parentID);
     }
+    public Linker(int parentID,List<Integer> points) {
+        this.pointID = parentID;
+        this.parentID = parentID;
+        this.out = true;
+        this.points = new ArrayList<>();
+        this.points.addAll(points);
+    }
 
     public Linker(int parentID, int pointID, boolean out, List<Integer> points) {
         this.parentID = parentID;
         this.pointID = pointID;
         this.out = out;
-        this.points = points;
+        this.points = new ArrayList<>();
+        this.points.addAll(points);
     }
 
     public int getParentID() {
